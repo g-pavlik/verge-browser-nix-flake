@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - ".github/workflows/nix-flake.yml"
+  pull_request:
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - ".github/workflows/nix-flake.yml"
+  workflow_dispatch:
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Check flake evaluation
+        run: nix flake check
+
+      - name: Build package
+        run: nix build .#default
+
+      - name: Verify build output
+        run: nix path-info --recursive ./result
+
+      - name: Check devShell
+        run: nix develop --command echo "devShell OK"
